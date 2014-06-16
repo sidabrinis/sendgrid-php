@@ -15,6 +15,7 @@ class SendGrid {
     $this->username = $username;
     $this->password = $password;
     $this->options  = $options;
+    $this->web      = new SendGrid\Web($username, $password, $options);
   }
 
   public function send(SendGrid\Email $email) {
@@ -32,7 +33,27 @@ class SendGrid {
     return $response->body;
   }
 
-  public static function register_autoloader() {
+  public function __get($api) {
+      $name = $api;
+
+      if($this->$name != null) {
+          return $this->$name;
+      }
+
+      $api = $this->namespace . "\\" . ucwords($api);
+      $class_name = str_replace('\\', '/', "$api.php");
+      $file = __dir__ . DIRECTORY_SEPARATOR . $class_name;
+
+      if (!file_exists($file)) {
+          throw new Exception("Api '$class_name' not found.");
+      }
+      require_once $file;
+
+      $this->$name = new $api($this->username, $this->password, $this->options);
+      return $this->$name;
+  }
+
+    public static function register_autoloader() {
     spl_autoload_register(array('SendGrid', 'autoloader'));
   }
 
